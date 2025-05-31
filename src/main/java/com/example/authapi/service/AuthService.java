@@ -3,6 +3,7 @@ package com.example.authapi.service;
 import java.util.Base64;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.authapi.model.User;
@@ -11,7 +12,8 @@ import com.example.authapi.repository.UserRepository;
 @Service
 public class AuthService {
 
-    private final UserRepository repo = new UserRepository();
+    @Autowired
+    private UserRepository repo;
 
     public User signup(String userId, String password) {
         validateSignup(userId, password);

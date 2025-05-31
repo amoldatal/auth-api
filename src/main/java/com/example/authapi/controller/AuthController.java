@@ -1,12 +1,11 @@
 package com.example.authapi.controller;
 
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,12 +16,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.authapi.model.User;
 import com.example.authapi.service.AuthService;
 
+@CrossOrigin
 @RestController
 public class AuthController {
 
-    private final AuthService service = new AuthService();
+	@Autowired
+	private AuthService service;
 
-    @PostMapping("/signup")
+	@PostMapping(value = "/signup", consumes = "application/json", produces = "application/json")
     public ResponseEntity<?> signup(@RequestBody User user) {
         if (user.getUserId() == null || user.getPassword() == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Missing user_id or password"));
@@ -34,7 +35,7 @@ public class AuthController {
         ));
     }
 
-    @GetMapping("/users/{userId}")
+	@PatchMapping(value = "/users/{userId}", consumes = "application/json")
     public ResponseEntity<?> getUser(@RequestHeader(value = "Authorization", required = false) String auth,
                                      @PathVariable String userId) {
         try {
