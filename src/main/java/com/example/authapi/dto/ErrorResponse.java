@@ -1,7 +1,6 @@
 package com.example.authapi.dto;
 
 public class ErrorResponse {
-
     private String message;
     private String cause;
 
