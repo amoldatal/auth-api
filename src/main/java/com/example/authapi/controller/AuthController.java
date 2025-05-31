@@ -5,7 +5,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,45 +16,47 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.authapi.model.User;
 import com.example.authapi.service.AuthService;
 
-@CrossOrigin
 @RestController
 public class AuthController {
 
-	@Autowired
-	private AuthService service;
+	private final AuthService service;
 
-	@PostMapping(value = "/signup", consumes = "application/json", produces = "application/json")
+    @Autowired
+    public AuthController(AuthService service) {
+        this.service = service;
+    }
+
+    @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody User user) {
         if (user.getUserId() == null || user.getPassword() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Missing user_id or password"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Missing user_id or password"));
         }
         User created = service.signup(user.getUserId(), user.getPassword());
-        return ResponseEntity.ok().body(Map.of(
+        return ResponseEntity.ok(Map.of(
                 "message", "Account successfully created",
-                "user", Map.of("user_id", created.getUserId(), "nickname", created.getNickname())
+                "user", Map.of(
+                        "user_id", created.getUserId(),
+                        "nickname", created.getNickname() != null ? created.getNickname() : "",
+                        "comment", created.getComment() != null ? created.getComment() : ""
+                )
         ));
     }
 
-	@PatchMapping(value = "/users/{userId}", consumes = "application/json")
+    @GetMapping("/users/{userId}")
     public ResponseEntity<?> getUser(@RequestHeader(value = "Authorization", required = false) String auth,
                                      @PathVariable String userId) {
         try {
             User user = service.getUser(auth, userId);
-            return ResponseEntity.ok().body(Map.of(
+            return ResponseEntity.ok(Map.of(
                     "message", "User details by user_id",
                     "user", Map.of(
                             "user_id", user.getUserId(),
-                            "nickname", user.getNickname(),
-                            "comment", user.getComment())
+                            "nickname", user.getNickname() != null ? user.getNickname() : "",
+                            "comment", user.getComment() != null ? user.getComment() : ""
+                    )
             ));
         } catch (RuntimeException e) {
-            if (e.getMessage().contains("Authentication")) {
-                return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
-            } else if (e.getMessage().contains("Permission")) {
-                return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
-            } else {
-                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-            }
+            return handleError(e);
         }
     }
 
@@ -63,21 +65,18 @@ public class AuthController {
                                     @PathVariable String userId,
                                     @RequestBody Map<String, String> updates) {
         try {
-            User user = service.updateUser(auth, userId, updates.get("nickname"), updates.get("comment"));
-            return ResponseEntity.ok().body(Map.of(
+            User user = service.updateUser(auth, userId,
+                    updates.getOrDefault("nickname", null),
+                    updates.getOrDefault("comment", null));
+            return ResponseEntity.ok(Map.of(
                     "message", "User successfully updated",
                     "user", Map.of(
-                            "nickname", user.getNickname(),
-                            "comment", user.getComment())
+                            "nickname", user.getNickname() != null ? user.getNickname() : "",
+                            "comment", user.getComment() != null ? user.getComment() : ""
+                    )
             ));
         } catch (RuntimeException e) {
-            if (e.getMessage().contains("Authentication")) {
-                return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
-            } else if (e.getMessage().contains("Permission")) {
-                return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
-            } else {
-                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-            }
+            return handleError(e);
         }
     }
 
@@ -86,12 +85,9 @@ public class AuthController {
         try {
             String userId = extractUserId(auth);
             service.deleteUser(auth, userId);
-            return ResponseEntity.ok().body(Map.of("message", "Account and user deleted"));
+            return ResponseEntity.ok(Map.of("message", "Account and user deleted"));
         } catch (RuntimeException e) {
-            if (e.getMessage().contains("Authentication")) {
-                return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
-            }
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return handleError(e);
         }
     }
 
@@ -99,5 +95,15 @@ public class AuthController {
         String base64Credentials = auth.substring("Basic ".length());
         String[] values = new String(Base64.getDecoder().decode(base64Credentials)).split(":");
         return values[0];
+    }
+
+    private ResponseEntity<?> handleError(RuntimeException e) {
+        if (e.getMessage().contains("Authentication")) {
+            return ResponseEntity.status(401).body(Map.of("message", e.getMessage()));
+        } else if (e.getMessage().contains("Permission")) {
+            return ResponseEntity.status(403).body(Map.of("message", e.getMessage()));
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 }
