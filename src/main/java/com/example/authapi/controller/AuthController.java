@@ -1,8 +1,5 @@
-// package: com.example.authapi.controller
-
 package com.example.authapi.controller;
 
-import org.apache.logging.log4j.message.SimpleMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.authapi.dto.ErrorResponse;
 import com.example.authapi.dto.SignupRequest;
+import com.example.authapi.dto.SimpleMessage;
 import com.example.authapi.dto.UpdateRequest;
 import com.example.authapi.service.AuthService;
 
@@ -81,4 +79,5 @@ public class AuthController {
                     .body(new SimpleMessage("Authentication Failed"));
         }
     }
+
 }
