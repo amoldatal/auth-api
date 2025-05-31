@@ -18,7 +18,7 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody User user) {
         if (user.getUserId() == null || user.getPassword() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Account creation failed"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Account creation failed"));
         }
         User created = service.signup(user.getUserId(), user.getPassword());
         return ResponseEntity.ok(Map.of(
