@@ -28,7 +28,7 @@ public class AuthService {
     public User getUser(String authHeader, String userId) {
         User authUser = authorize(authHeader);
         if (!authUser.getUserId().equals(userId)) {
-            throw new RuntimeException("403 - No Permission for this user");
+            throw new RuntimeException("No Permission for this user");
         }
         return authUser;
     }
@@ -51,12 +51,12 @@ public class AuthService {
 
     private User authorize(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Basic ")) {
-            throw new RuntimeException("401 - Authentication Failed");
+            throw new RuntimeException("Authentication Failed");
         }
         String base64Credentials = authHeader.substring("Basic ".length());
         String[] values = new String(Base64.getDecoder().decode(base64Credentials)).split(":");
         if (values.length != 2) {
-            throw new RuntimeException("401 - Authentication Failed");
+            throw new RuntimeException("Authentication Failed");
         }
 
         String userId = values[0];
@@ -64,7 +64,7 @@ public class AuthService {
 
         Optional<User> userOpt = repo.findById(userId);
         if (userOpt.isEmpty() || !userOpt.get().getPassword().equals(password)) {
-            throw new RuntimeException("401 - Authentication Failed");
+            throw new RuntimeException("Authentication Failed");
         }
         return userOpt.get();
     }
@@ -72,7 +72,7 @@ public class AuthService {
     private void validateSignup(String userId, String password) {
         if (userId == null || password == null || userId.length() < 6 || userId.length() > 20 ||
                 password.length() < 8 || password.length() > 20) {
-            throw new RuntimeException("400 - Invalid signup details");
+            throw new RuntimeException("Invalid signup details");
         }
     }
 }
