@@ -22,7 +22,7 @@ public class AuthController {
                     .badRequest()
                     .body(Map.of(
                             "message", "Account creation failed",
-                            "cause", "Missing user_id or password"
+                            "cause", "user_id and password are required"
                     ));
         }
         User created = service.signup(user.getUserId(), user.getPassword());
