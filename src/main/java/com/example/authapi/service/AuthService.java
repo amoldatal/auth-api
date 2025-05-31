@@ -20,9 +20,9 @@ public class AuthService {
     private UserRepository userRepository;
 
     public SignupResponse signup(SignupRequest request) {
-        if (userRepository.findByUserId(request.getUser_id()).isPresent()) {
-            throw new RuntimeException("Already same user_id is used");
-        }
+    	if (userRepository.findByUserId(request.getUser_id()).isPresent()) {
+    	    throw new IllegalArgumentException("already same user_id is used");
+    	}
 
         User user = User.builder()
                 .userId(request.getUser_id())

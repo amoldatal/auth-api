@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.authapi.dto.ErrorResponse;
 import com.example.authapi.dto.SignupRequest;
+import com.example.authapi.dto.SignupResponse;
 import com.example.authapi.dto.SimpleMessage;
 import com.example.authapi.dto.UpdateRequest;
 import com.example.authapi.service.AuthService;
@@ -29,12 +30,8 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest request) {
-        try {
-            return ResponseEntity.ok(authService.signup(request));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("Account creation failed", e.getMessage()));
-        }
+        SignupResponse response = authService.signup(request);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/users/{user_id}")
