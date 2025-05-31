@@ -38,12 +38,14 @@ public class AuthService {
     }
 
     public UserResponse getUser(String userId, String authHeader) {
-        User user = validateAuth(userId, authHeader);
-
-        String nickname = StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUserId();
+        User authUser = getUserFromAuth(authHeader);
+        User targetUser = userRepository.findByUserId(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
         return new UserResponse("User details by user_id",
-                new UserResponse.User(user.getUserId(), nickname, user.getComment()));
+            new UserResponse.User(targetUser.getUserId(),
+                                  targetUser.getNickname(),
+                                  targetUser.getComment()));
     }
 
     public UserResponse updateUser(String userId, String authHeader, UpdateRequest request) {
@@ -92,8 +94,7 @@ public class AuthService {
 
         try {
             String base64Credentials = authHeader.substring(6);
-            byte[] decodedBytes = Base64.getDecoder().decode(base64Credentials);
-            String decoded = new String(decodedBytes);
+            String decoded = new String(Base64.getDecoder().decode(base64Credentials));
             String[] parts = decoded.split(":", 2);
 
             if (parts.length < 2) throw new SecurityException("Authentication Failed");
@@ -102,8 +103,8 @@ public class AuthService {
             String password = parts[1];
 
             return userRepository.findByUserId(userId)
-                    .filter(u -> u.getPassword().equals(password))
-                    .orElseThrow(() -> new SecurityException("Authentication Failed"));
+                .filter(user -> user.getPassword().equals(password))
+                .orElseThrow(() -> new SecurityException("Authentication Failed"));
         } catch (Exception e) {
             throw new SecurityException("Authentication Failed");
         }
