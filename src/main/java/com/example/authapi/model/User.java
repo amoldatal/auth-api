@@ -1,11 +1,12 @@
 package com.example.authapi.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 
 @Entity
 public class User {
-    @Id
+	@JsonProperty("user_id")
     private String userId;
 
     private String password;
