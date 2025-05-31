@@ -1,5 +1,6 @@
 package com.example.authapi.service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,35 +79,37 @@ public class AuthService {
         userRepository.delete(user);
         return "Account and user successfully removed";
     }
-
-    private User validateAuth(String userId, String authHeader) {
-        User user = getUserFromAuth(authHeader);
-        if (!user.getUserId().equals(userId)) {
-            throw new SecurityException("No Permission for Update");
-        }
-        return user;
-    }
-
     private User getUserFromAuth(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Basic ")) {
             throw new SecurityException("Authentication Failed");
         }
 
         try {
-            String base64Credentials = authHeader.substring(6);
-            String decoded = new String(Base64.getDecoder().decode(base64Credentials));
+            String base64Credentials = authHeader.substring("Basic ".length());
+            String decoded = new String(Base64.getDecoder().decode(base64Credentials), StandardCharsets.UTF_8);
             String[] parts = decoded.split(":", 2);
 
             if (parts.length < 2) throw new SecurityException("Authentication Failed");
 
-            String userId = parts[0];
+            String loginUserId = parts[0];
             String password = parts[1];
 
-            return userRepository.findByUserId(userId)
-                .filter(user -> user.getPassword().equals(password))
-                .orElseThrow(() -> new SecurityException("Authentication Failed"));
+            return userRepository.findByUserId(loginUserId)
+                    .filter(user -> user.getPassword().equals(password))
+                    .orElseThrow(() -> new SecurityException("Authentication Failed"));
         } catch (Exception e) {
             throw new SecurityException("Authentication Failed");
         }
+    }
+
+    
+    private User validateAuth(String pathUserId, String authHeader) {
+        User loggedInUser = getUserFromAuth(authHeader);
+
+        if (!loggedInUser.getUserId().equals(pathUserId)) {
+            throw new SecurityException("No Permission for Update"); // This triggers 403
+        }
+
+        return loggedInUser;
     }
 }
