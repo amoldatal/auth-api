@@ -20,48 +20,78 @@ import com.example.authapi.service.AuthService;
 @RestController
 public class AuthController {
 
-    private final AuthService service;
-
-    @Autowired
-    public AuthController(AuthService service) {
-        this.service = service;
-    }
+    private final AuthService service = new AuthService();
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody User user) {
+        if (user.getUserId() == null || user.getPassword() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing user_id or password"));
+        }
         User created = service.signup(user.getUserId(), user.getPassword());
-        return ResponseEntity.ok(Map.of(
+        return ResponseEntity.ok().body(Map.of(
                 "message", "Account successfully created",
                 "user", Map.of("user_id", created.getUserId(), "nickname", created.getNickname())
         ));
     }
 
     @GetMapping("/users/{userId}")
-    public ResponseEntity<?> getUser(@RequestHeader("Authorization") String auth,
+    public ResponseEntity<?> getUser(@RequestHeader(value = "Authorization", required = false) String auth,
                                      @PathVariable String userId) {
-        User user = service.getUser(auth, userId);
-        return ResponseEntity.ok(Map.of(
-                "message", "User details by user_id",
-                "user", Map.of("user_id", user.getUserId(), "nickname", user.getNickname(), "comment", user.getComment())
-        ));
+        try {
+            User user = service.getUser(auth, userId);
+            return ResponseEntity.ok().body(Map.of(
+                    "message", "User details by user_id",
+                    "user", Map.of(
+                            "user_id", user.getUserId(),
+                            "nickname", user.getNickname(),
+                            "comment", user.getComment())
+            ));
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("Authentication")) {
+                return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+            } else if (e.getMessage().contains("Permission")) {
+                return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            }
+        }
     }
 
     @PatchMapping("/users/{userId}")
     public ResponseEntity<?> update(@RequestHeader("Authorization") String auth,
                                     @PathVariable String userId,
                                     @RequestBody Map<String, String> updates) {
-        User user = service.updateUser(auth, userId, updates.get("nickname"), updates.get("comment"));
-        return ResponseEntity.ok(Map.of(
-                "message", "User successfully updated",
-                "recipe", List.of(Map.of("nickname", user.getNickname(), "comment", user.getComment()))
-        ));
+        try {
+            User user = service.updateUser(auth, userId, updates.get("nickname"), updates.get("comment"));
+            return ResponseEntity.ok().body(Map.of(
+                    "message", "User successfully updated",
+                    "user", Map.of(
+                            "nickname", user.getNickname(),
+                            "comment", user.getComment())
+            ));
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("Authentication")) {
+                return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+            } else if (e.getMessage().contains("Permission")) {
+                return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            }
+        }
     }
 
     @PostMapping("/close")
     public ResponseEntity<?> close(@RequestHeader("Authorization") String auth) {
-        String userId = extractUserId(auth);
-        service.deleteUser(auth, userId);
-        return ResponseEntity.ok(Map.of("message", "Account and user deleted"));
+        try {
+            String userId = extractUserId(auth);
+            service.deleteUser(auth, userId);
+            return ResponseEntity.ok().body(Map.of("message", "Account and user deleted"));
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("Authentication")) {
+                return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     private String extractUserId(String auth) {
