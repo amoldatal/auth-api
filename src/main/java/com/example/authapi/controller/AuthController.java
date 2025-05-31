@@ -4,6 +4,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -18,8 +19,10 @@ import com.example.authapi.service.AuthService;
 
 @RestController
 public class AuthController {
-	private final AuthService service;
 
+    private final AuthService service;
+
+    @Autowired
     public AuthController(AuthService service) {
         this.service = service;
     }
@@ -27,7 +30,7 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody User user) {
         User created = service.signup(user.getUserId(), user.getPassword());
-        return ResponseEntity.ok().body(Map.of(
+        return ResponseEntity.ok(Map.of(
                 "message", "Account successfully created",
                 "user", Map.of("user_id", created.getUserId(), "nickname", created.getNickname())
         ));
@@ -37,7 +40,7 @@ public class AuthController {
     public ResponseEntity<?> getUser(@RequestHeader("Authorization") String auth,
                                      @PathVariable String userId) {
         User user = service.getUser(auth, userId);
-        return ResponseEntity.ok().body(Map.of(
+        return ResponseEntity.ok(Map.of(
                 "message", "User details by user_id",
                 "user", Map.of("user_id", user.getUserId(), "nickname", user.getNickname(), "comment", user.getComment())
         ));
@@ -48,7 +51,7 @@ public class AuthController {
                                     @PathVariable String userId,
                                     @RequestBody Map<String, String> updates) {
         User user = service.updateUser(auth, userId, updates.get("nickname"), updates.get("comment"));
-        return ResponseEntity.ok().body(Map.of(
+        return ResponseEntity.ok(Map.of(
                 "message", "User successfully updated",
                 "recipe", List.of(Map.of("nickname", user.getNickname(), "comment", user.getComment()))
         ));
@@ -58,7 +61,7 @@ public class AuthController {
     public ResponseEntity<?> close(@RequestHeader("Authorization") String auth) {
         String userId = extractUserId(auth);
         service.deleteUser(auth, userId);
-        return ResponseEntity.ok().body(Map.of("message", "Account and user deleted"));
+        return ResponseEntity.ok(Map.of("message", "Account and user deleted"));
     }
 
     private String extractUserId(String auth) {

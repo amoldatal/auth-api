@@ -10,11 +10,8 @@ import com.example.authapi.repository.UserRepository;
 
 @Service
 public class AuthService {
-	private final UserRepository repo;
 
-    public AuthService(UserRepository repo) {
-        this.repo = repo;
-    }
+    private final UserRepository repo = new UserRepository();
 
     public User signup(String userId, String password) {
         validateSignup(userId, password);
@@ -67,7 +64,7 @@ public class AuthService {
 
     private void validateSignup(String userId, String password) {
         if (userId == null || password == null || userId.length() < 6 || userId.length() > 20 ||
-                password.length() < 8 || password.length() > 20) {
+            password.length() < 8 || password.length() > 20) {
             throw new RuntimeException("400 - Invalid signup details");
         }
     }
