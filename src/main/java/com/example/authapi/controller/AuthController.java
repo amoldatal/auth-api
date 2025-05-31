@@ -25,7 +25,7 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody User user) {
         if (user.getUserId() == null || user.getPassword() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Missing user_id or password"));
+        	return ResponseEntity.badRequest().body(Map.of("error", "Account creation failed"));
         }
         User created = service.signup(user.getUserId(), user.getPassword());
         return ResponseEntity.ok(Map.of(
@@ -86,11 +86,11 @@ public class AuthController {
     }
 
     private ResponseEntity<Map<String, String>> handleError(RuntimeException e) {
-        if (e.getMessage().contains("Authentication")) {
-            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
-        } else if (e.getMessage().contains("Permission")) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
-        } else {
+    	if (e.getMessage().contains("Authentication")) {
+    	    return ResponseEntity.status(401).body(Map.of("error", "Authentication Failed"));
+    	} else if (e.getMessage().contains("Permission")) {
+    	    return ResponseEntity.status(403).body(Map.of("error", "No Permission for Update"));
+    	} else {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
