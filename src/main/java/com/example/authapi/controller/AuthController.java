@@ -17,16 +17,15 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody User user) {
-        if (user.getUserId() == null || user.getUserId().trim().isEmpty() ||
-            user.getPassword() == null || user.getPassword().trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Missing required fields: user_id and password"));
+        try {
+            User created = service.signup(user.getUserId(), user.getPassword());
+            return ResponseEntity.ok(Map.of(
+                    "message", "Account successfully created",
+                    "user", Map.of("user_id", created.getUserId(), "nickname", created.getNickname())
+            ));
+        } catch (RuntimeException e) {
+            return handleError(e);
         }
-
-        User created = service.signup(user.getUserId(), user.getPassword());
-        return ResponseEntity.ok(Map.of(
-                "message", "Account successfully created",
-                "user", Map.of("user_id", created.getUserId(), "nickname", created.getNickname())
-        ));
     }
 
     @GetMapping("/users/{userId}")
@@ -81,12 +80,23 @@ public class AuthController {
     }
 
     private ResponseEntity<Map<String, String>> handleError(RuntimeException e) {
-        if (e.getMessage().contains("Authentication")) {
+        String msg = e.getMessage();
+
+        if (msg.contains("Missing")) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", msg,
+                "cause", "required"
+            ));
+        } else if (msg.contains("already")) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", msg
+            ));
+        } else if (msg.contains("Authentication")) {
             return ResponseEntity.status(401).body(Map.of("error", "Authentication Failed"));
-        } else if (e.getMessage().contains("Permission")) {
+        } else if (msg.contains("Permission")) {
             return ResponseEntity.status(403).body(Map.of("error", "No Permission for Update"));
         } else {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", msg));
         }
     }
 }

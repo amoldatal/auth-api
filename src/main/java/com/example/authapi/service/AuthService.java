@@ -69,7 +69,8 @@ public class AuthService {
     }
 
     private void validateSignup(String userId, String password) {
-        if (userId == null || userId.trim().isEmpty() || password == null || password.trim().isEmpty()) {
+        if (userId == null || userId.trim().isEmpty() ||
+            password == null || password.trim().isEmpty()) {
             throw new RuntimeException("Missing required fields: user_id and password");
         }
     }
