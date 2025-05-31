@@ -1,7 +1,6 @@
 package com.example.authapi.dto;
 
 public class SignupResponse {
-
     private String message;
     private User user;
 
@@ -31,7 +30,7 @@ public class SignupResponse {
     public static class User {
         private String user_id;
         private String nickname;
-        private String comment;
+        private String comment; // ✅ required for test
 
         public User() {}
 

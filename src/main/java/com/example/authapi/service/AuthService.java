@@ -34,7 +34,7 @@ public class AuthService {
         userRepository.save(user);
 
         return new SignupResponse("Account successfully created",
-                new SignupResponse.User(user.getUserId(), user.getNickname(), user.getComment()));
+        	    new SignupResponse.User(user.getUserId(), user.getNickname(), user.getComment()));
     }
 
     public UserResponse getUser(String userId, String authHeader) {
