@@ -69,9 +69,8 @@ public class AuthService {
     }
 
     private void validateSignup(String userId, String password) {
-        if (userId == null || password == null || userId.length() < 6 || userId.length() > 20 ||
-            password.length() < 8 || password.length() > 20) {
-            throw new RuntimeException("Account creation failed");
+        if (userId == null || userId.isEmpty() || password == null || password.isEmpty()) {
+            throw new RuntimeException("Missing required fields: user_id and password");
         }
     }
 }
