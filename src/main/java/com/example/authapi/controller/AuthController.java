@@ -1,102 +1,84 @@
+// package: com.example.authapi.controller
+
 package com.example.authapi.controller;
 
-import com.example.authapi.model.User;
-import com.example.authapi.service.AuthService;
+import org.apache.logging.log4j.message.SimpleMessage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Base64;
-import java.util.Map;
+import com.example.authapi.dto.ErrorResponse;
+import com.example.authapi.dto.SignupRequest;
+import com.example.authapi.dto.UpdateRequest;
+import com.example.authapi.service.AuthService;
+
+import jakarta.validation.Valid;
 
 @RestController
+@RequestMapping
 public class AuthController {
 
     @Autowired
-    private AuthService service;
+    private AuthService authService;
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody User user) {
+    public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest request) {
         try {
-            User created = service.signup(user.getUserId(), user.getPassword());
-            return ResponseEntity.ok(Map.of(
-                    "message", "Account successfully created",
-                    "user", Map.of("user_id", created.getUserId(), "nickname", created.getNickname())
-            ));
+            return ResponseEntity.ok(authService.signup(request));
         } catch (RuntimeException e) {
-            return handleError(e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("Account creation failed", e.getMessage()));
         }
     }
 
-    @GetMapping("/users/{userId}")
-    public ResponseEntity<?> getUser(@RequestHeader(value = "Authorization", required = false) String auth,
-                                     @PathVariable String userId) {
+    @GetMapping("/users/{user_id}")
+    public ResponseEntity<?> getUser(@PathVariable("user_id") String userId,
+                                     @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            User user = service.getUser(auth, userId);
-            return ResponseEntity.ok(Map.of(
-                    "message", "User details by user_id",
-                    "user", Map.of(
-                            "user_id", user.getUserId(),
-                            "nickname", user.getNickname(),
-                            "comment", user.getComment())
-            ));
-        } catch (RuntimeException e) {
-            return handleError(e);
+            return ResponseEntity.ok(authService.getUser(userId, authHeader));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new SimpleMessage("Authentication Failed"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new SimpleMessage("No User found"));
         }
     }
 
-    @PatchMapping("/users/{userId}")
-    public ResponseEntity<?> update(@RequestHeader(value = "Authorization", required = false) String auth,
-                                    @PathVariable String userId,
-                                    @RequestBody Map<String, String> updates) {
+    @PatchMapping("/users/{user_id}")
+    public ResponseEntity<?> updateUser(@PathVariable("user_id") String userId,
+                                        @RequestHeader(value = "Authorization", required = false) String authHeader,
+                                        @RequestBody UpdateRequest request) {
         try {
-            User user = service.updateUser(auth, userId, updates.get("nickname"), updates.get("comment"));
-            return ResponseEntity.ok(Map.of(
-                    "message", "User successfully updated",
-                    "user", Map.of(
-                            "nickname", user.getNickname(),
-                            "comment", user.getComment())
-            ));
-        } catch (RuntimeException e) {
-            return handleError(e);
+            return ResponseEntity.ok(authService.updateUser(userId, authHeader, request));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new SimpleMessage("Authentication Failed"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("User updation failed", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new SimpleMessage("No Permission for Update"));
         }
     }
 
     @PostMapping("/close")
-    public ResponseEntity<?> close(@RequestHeader(value = "Authorization", required = false) String auth) {
+    public ResponseEntity<?> closeAccount(@RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            String userId = extractUserId(auth);
-            service.deleteUser(auth, userId);
-            return ResponseEntity.ok(Map.of("message", "Account and user deleted"));
-        } catch (RuntimeException e) {
-            return handleError(e);
-        }
-    }
-
-    private String extractUserId(String auth) {
-        String base64Credentials = auth.substring("Basic ".length());
-        String[] values = new String(Base64.getDecoder().decode(base64Credentials)).split(":");
-        return values[0];
-    }
-
-    private ResponseEntity<Map<String, String>> handleError(RuntimeException e) {
-        String msg = e.getMessage();
-
-        if (msg.contains("Missing")) {
-            return ResponseEntity.badRequest().body(Map.of(
-                "error", msg,
-                "cause", "required"
-            ));
-        } else if (msg.contains("already")) {
-            return ResponseEntity.badRequest().body(Map.of(
-                "error", msg
-            ));
-        } else if (msg.contains("Authentication")) {
-            return ResponseEntity.status(401).body(Map.of("error", "Authentication Failed"));
-        } else if (msg.contains("Permission")) {
-            return ResponseEntity.status(403).body(Map.of("error", "No Permission for Update"));
-        } else {
-            return ResponseEntity.badRequest().body(Map.of("error", msg));
+            String msg = authService.deleteUser(authHeader);
+            return ResponseEntity.ok(new SimpleMessage(msg));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new SimpleMessage("Authentication Failed"));
         }
     }
 }

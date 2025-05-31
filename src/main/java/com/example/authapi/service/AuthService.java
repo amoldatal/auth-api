@@ -1,77 +1,111 @@
 package com.example.authapi.service;
 
-import com.example.authapi.model.User;
-import com.example.authapi.repository.UserRepository;
+import java.util.Base64;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
-import java.util.Base64;
-import java.util.Optional;
+import com.example.authapi.dto.SignupRequest;
+import com.example.authapi.dto.SignupResponse;
+import com.example.authapi.dto.UpdateRequest;
+import com.example.authapi.dto.UserResponse;
+import com.example.authapi.model.User;
+import com.example.authapi.repository.UserRepository;
 
 @Service
 public class AuthService {
 
     @Autowired
-    private UserRepository repo;
+    private UserRepository userRepository;
 
-    public User signup(String userId, String password) {
-        validateSignup(userId, password);
-        if (repo.existsById(userId)) {
-            throw new RuntimeException("Account creation failed");
+    public SignupResponse signup(SignupRequest request) {
+        if (userRepository.findByUserId(request.getUser_id()).isPresent()) {
+            throw new RuntimeException("Already same user_id is used");
         }
-        User user = new User(userId, password);
-        return repo.save(user);
+
+        User user = User.builder()
+                .userId(request.getUser_id())
+                .password(request.getPassword())
+                .nickname(request.getUser_id()) // default nickname = user_id
+                .comment("")
+                .build();
+
+        userRepository.save(user);
+
+        return new SignupResponse("Account successfully created",
+                new SignupResponse.User(user.getUserId(), user.getNickname(), user.getComment()));
     }
 
-    public User getUser(String authHeader, String userId) {
-        User authUser = authorize(authHeader);
-        if (!authUser.getUserId().equals(userId)) {
-            throw new RuntimeException("No Permission for Update");
+    public UserResponse getUser(String userId, String authHeader) {
+        User user = validateAuth(userId, authHeader);
+
+        String nickname = StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUserId();
+
+        return new UserResponse("User details by user_id",
+                new UserResponse.User(user.getUserId(), nickname, user.getComment()));
+    }
+
+    public UserResponse updateUser(String userId, String authHeader, UpdateRequest request) {
+        User user = validateAuth(userId, authHeader);
+
+        boolean updated = false;
+
+        if (request.getNickname() != null) {
+            user.setNickname(request.getNickname().isEmpty() ? user.getUserId() : request.getNickname());
+            updated = true;
         }
-        return authUser;
-    }
 
-    public User updateUser(String authHeader, String userId, String nickname, String comment) {
-        if (nickname == null && comment == null) {
-            throw new RuntimeException("User updation failed: required nickname or comment");
+        if (request.getComment() != null) {
+            user.setComment(request.getComment().isEmpty() ? "" : request.getComment());
+            updated = true;
         }
-        User user = getUser(authHeader, userId);
-        if (nickname != null) user.setNickname(nickname.isEmpty() ? userId : nickname);
-        if (comment != null) user.setComment(comment);
-        return repo.save(user);
+
+        if (!updated) {
+            throw new IllegalArgumentException("required nickname or comment");
+        }
+
+        userRepository.save(user);
+
+        return new UserResponse("User successfully updated",
+                new UserResponse.User(user.getUserId(), user.getNickname(), user.getComment()));
     }
 
-    public void deleteUser(String authHeader, String userId) {
-        getUser(authHeader, userId);
-        repo.deleteById(userId);
+    public String deleteUser(String authHeader) {
+        User user = getUserFromAuth(authHeader);
+        userRepository.delete(user);
+        return "Account and user successfully removed";
     }
 
-    private User authorize(String authHeader) {
+    private User validateAuth(String userId, String authHeader) {
+        User user = getUserFromAuth(authHeader);
+        if (!user.getUserId().equals(userId)) {
+            throw new SecurityException("No Permission for Update");
+        }
+        return user;
+    }
+
+    private User getUserFromAuth(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Basic ")) {
-            throw new RuntimeException("Authentication Failed");
-        }
-        String base64Credentials = authHeader.substring("Basic ".length());
-        String[] values = new String(Base64.getDecoder().decode(base64Credentials)).split(":");
-
-        if (values.length != 2) {
-            throw new RuntimeException("Authentication Failed");
+            throw new SecurityException("Authentication Failed");
         }
 
-        String userId = values[0];
-        String password = values[1];
+        try {
+            String base64Credentials = authHeader.substring(6);
+            byte[] decodedBytes = Base64.getDecoder().decode(base64Credentials);
+            String decoded = new String(decodedBytes);
+            String[] parts = decoded.split(":", 2);
 
-        Optional<User> userOpt = repo.findById(userId);
-        if (userOpt.isEmpty() || !userOpt.get().getPassword().equals(password)) {
-            throw new RuntimeException("Authentication Failed");
-        }
+            if (parts.length < 2) throw new SecurityException("Authentication Failed");
 
-        return userOpt.get();
-    }
+            String userId = parts[0];
+            String password = parts[1];
 
-    private void validateSignup(String userId, String password) {
-        if (userId == null || userId.trim().isEmpty() ||
-            password == null || password.trim().isEmpty()) {
-            throw new RuntimeException("Missing required fields: user_id and password");
+            return userRepository.findByUserId(userId)
+                    .filter(u -> u.getPassword().equals(password))
+                    .orElseThrow(() -> new SecurityException("Authentication Failed"));
+        } catch (Exception e) {
+            throw new SecurityException("Authentication Failed");
         }
     }
 }
