@@ -17,7 +17,8 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody User user) {
-        if (user.getUserId() == null || user.getPassword() == null) {
+        if (user.getUserId() == null || user.getUserId().trim().isEmpty() ||
+        	    user.getPassword() == null || user.getPassword().trim().isEmpty()) {
             return ResponseEntity
                     .badRequest()
                     .body(Map.of(
