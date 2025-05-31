@@ -40,12 +40,13 @@ public class AuthService {
         User user = getUser(authHeader, userId);
         if (nickname != null) user.setNickname(nickname.isEmpty() ? userId : nickname);
         if (comment != null) user.setComment(comment);
+        repo.save(user); // Save updated user to DB
         return user;
     }
 
     public void deleteUser(String authHeader, String userId) {
         getUser(authHeader, userId);
-        repo.delete(userId);
+        repo.deleteById(userId);
     }
 
     private User authorize(String authHeader) {
@@ -54,6 +55,10 @@ public class AuthService {
         }
         String base64Credentials = authHeader.substring("Basic ".length());
         String[] values = new String(Base64.getDecoder().decode(base64Credentials)).split(":");
+        if (values.length != 2) {
+            throw new RuntimeException("401 - Authentication Failed");
+        }
+
         String userId = values[0];
         String password = values[1];
 
@@ -66,7 +71,7 @@ public class AuthService {
 
     private void validateSignup(String userId, String password) {
         if (userId == null || password == null || userId.length() < 6 || userId.length() > 20 ||
-            password.length() < 8 || password.length() > 20) {
+                password.length() < 8 || password.length() > 20) {
             throw new RuntimeException("400 - Invalid signup details");
         }
     }
