@@ -9,4 +9,3 @@ public class AuthapiApplication {
         SpringApplication.run(AuthapiApplication.class, args);
     }
 }
-

@@ -1,20 +1,13 @@
 package com.example.authapi.controller;
 
-import java.util.Base64;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.example.authapi.model.User;
 import com.example.authapi.service.AuthService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Base64;
+import java.util.Map;
 
 @RestController
 public class AuthController {
@@ -25,17 +18,13 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody User user) {
         if (user.getUserId() == null || user.getPassword() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Missing user_id or password"));
+            return ResponseEntity.badRequest().body(Map.of("error", "Account creation failed"));
         }
-        try {
-            User created = service.signup(user.getUserId(), user.getPassword());
-            return ResponseEntity.ok(Map.of(
-                    "message", "Account successfully created",
-                    "user", Map.of("user_id", created.getUserId(), "nickname", created.getNickname())
-            ));
-        } catch (RuntimeException e) {
-            return handleError(e);
-        }
+        User created = service.signup(user.getUserId(), user.getPassword());
+        return ResponseEntity.ok(Map.of(
+                "message", "Account successfully created",
+                "user", Map.of("user_id", created.getUserId(), "nickname", created.getNickname())
+        ));
     }
 
     @GetMapping("/users/{userId}")
@@ -93,9 +82,7 @@ public class AuthController {
         if (e.getMessage().contains("Authentication")) {
             return ResponseEntity.status(401).body(Map.of("error", "Authentication Failed"));
         } else if (e.getMessage().contains("Permission")) {
-            return ResponseEntity.status(403).body(Map.of("error", "No Permission for this user"));
-        } else if (e.getMessage().contains("Invalid signup")) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Account creation failed"));
+            return ResponseEntity.status(403).body(Map.of("error", "No Permission for Update"));
         } else {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

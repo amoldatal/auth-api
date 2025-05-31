@@ -1,13 +1,12 @@
 package com.example.authapi.service;
 
-import java.util.Base64;
-import java.util.Optional;
-
+import com.example.authapi.model.User;
+import com.example.authapi.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.example.authapi.model.User;
-import com.example.authapi.repository.UserRepository;
+import java.util.Base64;
+import java.util.Optional;
 
 @Service
 public class AuthService {
@@ -17,18 +16,17 @@ public class AuthService {
 
     public User signup(String userId, String password) {
         validateSignup(userId, password);
-        if (repo.findById(userId).isPresent()) {
-            throw new RuntimeException("Account creation failed: already same user_id exists");
+        if (repo.existsById(userId)) {
+            throw new RuntimeException("Account creation failed");
         }
         User user = new User(userId, password);
-        repo.save(user);
-        return user;
+        return repo.save(user);
     }
 
     public User getUser(String authHeader, String userId) {
         User authUser = authorize(authHeader);
         if (!authUser.getUserId().equals(userId)) {
-            throw new RuntimeException("No Permission for this user");
+            throw new RuntimeException("No Permission for Update");
         }
         return authUser;
     }
@@ -40,8 +38,7 @@ public class AuthService {
         User user = getUser(authHeader, userId);
         if (nickname != null) user.setNickname(nickname.isEmpty() ? userId : nickname);
         if (comment != null) user.setComment(comment);
-        repo.save(user); // Save updated user to DB
-        return user;
+        return repo.save(user);
     }
 
     public void deleteUser(String authHeader, String userId) {
@@ -55,6 +52,7 @@ public class AuthService {
         }
         String base64Credentials = authHeader.substring("Basic ".length());
         String[] values = new String(Base64.getDecoder().decode(base64Credentials)).split(":");
+
         if (values.length != 2) {
             throw new RuntimeException("Authentication Failed");
         }
@@ -66,13 +64,14 @@ public class AuthService {
         if (userOpt.isEmpty() || !userOpt.get().getPassword().equals(password)) {
             throw new RuntimeException("Authentication Failed");
         }
+
         return userOpt.get();
     }
 
     private void validateSignup(String userId, String password) {
         if (userId == null || password == null || userId.length() < 6 || userId.length() > 20 ||
-                password.length() < 8 || password.length() > 20) {
-            throw new RuntimeException("Invalid signup details");
+            password.length() < 8 || password.length() > 20) {
+            throw new RuntimeException("Account creation failed");
         }
     }
 }
