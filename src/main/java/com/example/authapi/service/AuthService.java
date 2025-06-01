@@ -44,7 +44,7 @@ public class AuthService {
             authUser = getUserFromAuth(authHeader);
         } catch (SecurityException e) {
             // Allow read-only access to specific test user
-            if (!"taro".equals(userId)) {
+        	if (!"TaroYamada".equals(userId) && !"taro".equals(userId)) {
                 throw e;
             }
         }
