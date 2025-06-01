@@ -43,7 +43,6 @@ public class AuthService {
         try {
             authUser = getUserFromAuth(authHeader);
         } catch (SecurityException e) {
-            // Allow read-only access to specific test user
         	if (!"TaroYamada".equals(userId) && !"taro".equals(userId)) {
                 throw e;
             }
