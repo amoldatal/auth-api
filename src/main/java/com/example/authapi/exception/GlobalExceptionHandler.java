@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleValidationException(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
         StringBuilder messageBuilder = new StringBuilder();
 
         ex.getBindingResult().getFieldErrors().forEach(error -> {
@@ -48,11 +48,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException ex) {
         String message = ex.getMessage();
+
         if ("already same user_id is used".equals(message)) {
             return ResponseEntity.badRequest()
                     .body(new ErrorResponse("Account creation failed", message));
         }
+
+        if ("required user_id and password".equals(message)) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("Account creation failed", message));
+        }
+
+        // Fallback
         return ResponseEntity.badRequest()
                 .body(new ErrorResponse("Account creation failed", "Invalid request"));
     }
+
 }

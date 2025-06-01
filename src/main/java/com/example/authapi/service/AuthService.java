@@ -21,21 +21,27 @@ public class AuthService {
     private UserRepository userRepository;
 
     public SignupResponse signup(SignupRequest request) {
-    	if (userRepository.findByUserId(request.getUser_id()).isPresent()) {
-    	    throw new IllegalArgumentException("already same user_id is used");
-    	}
+        if (request.getUser_id() == null || request.getPassword() == null) {
+            throw new IllegalArgumentException("required user_id and password");
+        }
+
+        if (userRepository.findByUserId(request.getUser_id()).isPresent()) {
+            throw new IllegalArgumentException("already same user_id is used");
+        }
 
         User user = User.builder()
                 .userId(request.getUser_id())
                 .password(request.getPassword())
-                .nickname(request.getUser_id()) // default nickname = user_id
+                .nickname(request.getUser_id())
                 .comment("")
                 .build();
 
         userRepository.save(user);
 
-        return new SignupResponse("Account successfully created",
-        	    new SignupResponse.User(user.getUserId(), user.getNickname(), user.getComment()));
+        return new SignupResponse(
+                "Account successfully created",
+                new SignupResponse.User(user.getUserId(), user.getNickname(), user.getComment())
+        );
     }
 
     public UserResponse getUser(String userId, String authHeader) {
