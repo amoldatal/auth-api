@@ -39,22 +39,15 @@ public class AuthService {
     }
 
     public UserResponse getUser(String userId, String authHeader) {
-        User authUser = null;
-        try {
-            authUser = getUserFromAuth(authHeader);
-        } catch (SecurityException e) {
-        	if (!"TaroYamada".equals(userId) && !"taro".equals(userId)) {
-                throw e;
-            }
-        }
+        // Must authenticate
+        getUserFromAuth(authHeader); // ✅ throws SecurityException if missing or wrong
 
+        // Then allow viewing any user's info
         User targetUser = userRepository.findByUserId(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
         return new UserResponse("User details by user_id",
-            new UserResponse.User(targetUser.getUserId(),
-                                  targetUser.getNickname(),
-                                  targetUser.getComment()));
+            new UserResponse.User(targetUser.getUserId(), targetUser.getNickname(), targetUser.getComment()));
     }
 
 
