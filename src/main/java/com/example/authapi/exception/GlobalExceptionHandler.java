@@ -30,8 +30,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationException(MethodArgumentNotValidException ex) {
+        StringBuilder messageBuilder = new StringBuilder();
+
+        ex.getBindingResult().getFieldErrors().forEach(error -> {
+            messageBuilder.append(error.getField())
+                          .append(": ")
+                          .append(error.getDefaultMessage())
+                          .append("; ");
+        });
+
+        String message = messageBuilder.toString().trim();
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("Account creation failed", "required user_id and password"));
+                .body(new ErrorResponse("Account creation failed", message));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
