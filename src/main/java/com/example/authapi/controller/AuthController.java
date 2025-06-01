@@ -55,16 +55,21 @@ public class AuthController {
         try {
             return ResponseEntity.ok(authService.updateUser(userId, authHeader, request));
         } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new SimpleMessage("Authentication Failed"));
+            if ("Authentication Failed".equals(e.getMessage())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new SimpleMessage("Authentication Failed"));
+            } else if ("No Permission for Update".equals(e.getMessage())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new SimpleMessage("No Permission for Update"));
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new SimpleMessage(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ErrorResponse("User updation failed", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new SimpleMessage("No Permission for Update"));
         }
     }
+
 
     @PostMapping("/close")
     public ResponseEntity<?> closeAccount(@RequestHeader(value = "Authorization", required = false) String authHeader) {

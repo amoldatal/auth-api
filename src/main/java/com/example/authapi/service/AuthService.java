@@ -5,7 +5,6 @@ import java.util.Base64;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import com.example.authapi.dto.SignupRequest;
 import com.example.authapi.dto.SignupResponse;
